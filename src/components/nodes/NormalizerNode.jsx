@@ -3,6 +3,7 @@ import { Handle, Position, useStore, useReactFlow } from 'reactflow';
 import './NormalizerNode.css';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { normalizeDataset } from '../../utils/normalizationUtils';
+import InfoButton from '../ui/InfoButton';
 
 const NormalizerNode = ({ id, data, isConnectable }) => {
   const [selectedColumns, setSelectedColumns] = useState([]);
@@ -172,6 +173,7 @@ const NormalizerNode = ({ id, data, isConnectable }) => {
 
   return (
     <div className="normalizer-node">
+      <InfoButton nodeType="normalizer" />
       <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
 
       <div className="normalizer-header">

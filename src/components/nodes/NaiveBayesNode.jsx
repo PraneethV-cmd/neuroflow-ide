@@ -3,6 +3,7 @@ import { Handle, Position, useStore, useReactFlow } from 'reactflow';
 import './LinearRegressionNode.css';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { trainNaiveBayes, checkApiHealth } from '../../utils/apiClient';
+import InfoButton from '../ui/InfoButton';
 
 const NaiveBayesNode = ({ id, data, isConnectable }) => {
     const [selectedX, setSelectedX] = useState([]);
@@ -232,6 +233,7 @@ const NaiveBayesNode = ({ id, data, isConnectable }) => {
 
     return (
         <div className="linear-regression-node">
+            <InfoButton nodeType="naiveBayes" />
             <Handle type="target" position={Position.Top} isConnectable={isConnectable} style={{ background: '#555' }} />
 
             <div className="node-header">

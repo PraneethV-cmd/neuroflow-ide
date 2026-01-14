@@ -3,6 +3,7 @@ import { Handle, Position, useStore, useReactFlow } from 'reactflow';
 import './LinearRegressionNode.css';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { trainPolynomialRegression, checkApiHealth } from '../../utils/apiClient';
+import InfoButton from '../ui/InfoButton';
 
 const PolynomialRegressionNode = ({ id, data, isConnectable }) => {
     const [selectedX, setSelectedX] = useState([]);
@@ -81,6 +82,13 @@ const PolynomialRegressionNode = ({ id, data, isConnectable }) => {
                     headers: src.data?.pcaHeaders || [],
                     pcaRows: src.data?.pcaRows || [],
                     pcaInfo: src.data?.pcaInfo || {}
+                };
+            }
+            if (src?.type === 'dataTypeConverter') {
+                return {
+                    type: 'dataTypeConverter',
+                    headers: src.data?.headers || [],
+                    rows: src.data?.convertedRows || []
                 };
             }
         }
@@ -177,7 +185,6 @@ const PolynomialRegressionNode = ({ id, data, isConnectable }) => {
                                 coefficients: result.coefficients,
                                 n_features_original: result.n_features_original,
                                 n_features_poly: result.n_features_poly,
-                                n_features_poly: result.n_features_poly,
                                 xCols: selectedX,
                                 yCol,
                                 include_bias: result.include_bias,
@@ -201,6 +208,7 @@ const PolynomialRegressionNode = ({ id, data, isConnectable }) => {
 
     return (
         <div className="linear-regression-node">
+            <InfoButton nodeType="polynomialRegression" />
             <Handle type="target" position={Position.Top} isConnectable={isConnectable} style={{ background: '#555' }} />
 
             <div className="node-header">

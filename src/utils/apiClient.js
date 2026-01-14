@@ -1,5 +1,5 @@
 // API client for backend communication
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 export async function trainLogisticRegression(X, y, trainPercent, featureNames = [], targetName = 'target', options = {}) {
   try {
@@ -428,6 +428,73 @@ export async function convertDataTypes(data, headers, conversions, dateFormats =
     return result;
   } catch (error) {
     throw new Error(`API call failed: ${error.message}`);
+  }
+}
+
+export async function trainKMeans(X, nClusters, options = {}) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/kmeans`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        X,
+        n_clusters: nClusters,
+        ...options
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    throw new Error(`K-Means API call failed: ${error.message}`);
+  }
+}
+
+export async function trainHierarchicalClustering(X, options = {}) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/hierarchical-clustering`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        X,
+        ...options
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    throw new Error(`Hierarchical Clustering API call failed: ${error.message}`);
+  }
+}
+
+export async function trainDBSCAN(X, options = {}) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/dbscan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        X,
+        ...options
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    throw new Error(`DBSCAN API call failed: ${error.message}`);
   }
 }
 

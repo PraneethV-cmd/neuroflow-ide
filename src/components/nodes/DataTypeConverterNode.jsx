@@ -4,6 +4,7 @@ import { FaRandom, FaSync, FaExclamationTriangle, FaChevronDown, FaChevronUp, Fa
 import './DataTypeConverterNode.css';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { convertDataTypes, describeData } from '../../utils/apiClient';
+import InfoButton from '../ui/InfoButton';
 
 const DataTypeConverterNode = ({ id, data, isConnectable }) => {
     const [isExpanded, setIsExpanded] = useState(true);
@@ -163,6 +164,7 @@ const DataTypeConverterNode = ({ id, data, isConnectable }) => {
 
     return (
         <div className={`datatype-converter-node ${isExpanded ? 'expanded' : ''} ${isLocked ? 'locked' : ''}`}>
+            <InfoButton nodeType="dataTypeConverter" />
             <Handle type="target" position={Position.Top} isConnectable={isConnectable} className="handle-dot" />
             <Handle type="target" position={Position.Left} isConnectable={isConnectable} className="handle-dot" />
 

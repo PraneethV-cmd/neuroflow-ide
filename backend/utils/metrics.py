@@ -1,4 +1,8 @@
+"""
+Metrics for regression and classification
+"""
 import numpy as np
+
 
 def regression_metrics(y_true, y_pred):
     """Calculate regression metrics without sklearn"""
@@ -44,8 +48,9 @@ def regression_metrics(y_true, y_pred):
         "mape": mape
     }
 
+
 def classification_metrics(y_true, y_pred):
-    """Calculate classification metrics without sklearn"""
+    """Calculate classification metrics (Accuracy and Macro-averaged Precision/Recall/F1)"""
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
     
@@ -53,37 +58,60 @@ def classification_metrics(y_true, y_pred):
     y_true = np.nan_to_num(y_true, nan=0.0)
     y_pred = np.nan_to_num(y_pred, nan=0.0)
     
-    # Ensure binary labels
-    y_true = (y_true > 0.5).astype(int)
-    y_pred = (y_pred > 0.5).astype(int)
-    
-    # Confusion matrix
-    tp = np.sum((y_true == 1) & (y_pred == 1))
-    tn = np.sum((y_true == 0) & (y_pred == 0))
-    fp = np.sum((y_true == 0) & (y_pred == 1))
-    fn = np.sum((y_true == 1) & (y_pred == 0))
+    # Get unique classes
+    classes = np.unique(np.concatenate([y_true, y_pred]))
     
     # Accuracy
-    accuracy = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
+    accuracy = float(np.mean(y_true == y_pred))
     
-    # Precision
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    # Calculate macro-averaged metrics
+    precisions = []
+    recalls = []
     
-    # Recall
-    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    # Confusion matrix accumulator
+    conf_matrix_custom = {}
     
-    # F1 Score
-    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    # Binary case detection for simple confusion matrix return
+    is_binary = len(classes) <= 2 and set(classes).issubset({0, 1})
+    tp_total, tn_total, fp_total, fn_total = 0, 0, 0, 0
+    
+    for cls in classes:
+        # Binary arrays for this class vs All
+        y_true_cls = (y_true == cls)
+        y_pred_cls = (y_pred == cls)
+        
+        tp = np.sum(y_true_cls & y_pred_cls)
+        fp = np.sum((~y_true_cls) & y_pred_cls)
+        fn = np.sum(y_true_cls & (~y_pred_cls))
+        
+        # Precision for this class
+        p = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        precisions.append(p)
+        
+        # Recall for this class
+        r = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        recalls.append(r)
+        
+        # Keep track if binary for legacy return format
+        if is_binary and cls == 1:
+            tp_total, fp_total, fn_total = tp, fp, fn
+            tn_total = np.sum((~y_true_cls) & (~y_pred_cls))
+
+    # Macro Averages
+    precision_macro = float(np.mean(precisions)) if precisions else 0.0
+    recall_macro = float(np.mean(recalls)) if recalls else 0.0
+    f1_macro = 2 * (precision_macro * recall_macro) / (precision_macro + recall_macro) if (precision_macro + recall_macro) > 0 else 0.0
 
     return {
-        "accuracy": float(accuracy),
-        "precision": float(precision),
-        "recall": float(recall),
-        "f1_score": float(f1),
+        "accuracy": accuracy,
+        "precision": precision_macro,
+        "recall": recall_macro,
+        "f1_score": f1_macro,
         "confusion_matrix": {
-            "true_negatives": int(tn),
-            "false_positives": int(fp),
-            "false_negatives": int(fn),
-            "true_positives": int(tp)
+            # For multi-class, this simple structure is ambiguous, but keeping for binary compat
+            "true_negatives": int(tn_total) if is_binary else 0,
+            "false_positives": int(fp_total) if is_binary else 0,
+            "false_negatives": int(fn_total) if is_binary else 0,
+            "true_positives": int(tp_total) if is_binary else 0
         }
     }

@@ -4,6 +4,8 @@ import './DataCleanerNode.css';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { cleanDataset, isNumeric, isMissing } from '../../utils/dataCleaningUtils';
 
+import InfoButton from '../ui/InfoButton';
+
 const DataCleanerNode = ({ id, data, isConnectable }) => {
   const { setNodes } = useReactFlow();
 
@@ -214,6 +216,7 @@ const DataCleanerNode = ({ id, data, isConnectable }) => {
 
   return (
     <div className="data-cleaner-node">
+      <InfoButton nodeType="dataCleaner" />
       <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
 
       <div className="cleaner-header">

@@ -2,8 +2,7 @@ import React, { useMemo, useRef, useState, useEffect, useCallback, memo } from '
 import { Handle, Position, useStore, useReactFlow } from 'reactflow';
 import './CsvReaderNode.css';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
-// We'll remove the icon for this simpler design or keep it subtle
-// import { FaTable } from 'react-icons/fa';
+import InfoButton from '../ui/InfoButton';
 
 const CsvReaderNode = memo(({ id, data }) => {
   const inputRef = useRef(null);
@@ -123,6 +122,7 @@ const CsvReaderNode = memo(({ id, data }) => {
 
   return (
     <div className="csv-reader-node minimal">
+      <InfoButton nodeType="csvReader" />
       <div className="node-content">
         <div className="node-label">{label}</div>
 

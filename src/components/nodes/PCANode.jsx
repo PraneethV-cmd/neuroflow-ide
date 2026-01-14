@@ -3,6 +3,7 @@ import { Handle, Position, useStore, useReactFlow } from 'reactflow';
 import './PCANode.css';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { applyPCA } from '../../utils/apiClient';
+import InfoButton from '../ui/InfoButton';
 
 const PCANode = ({ id, data, isConnectable }) => {
     const [selectedColumns, setSelectedColumns] = useState([]);
@@ -238,6 +239,7 @@ const PCANode = ({ id, data, isConnectable }) => {
 
     return (
         <div className="pca-node">
+            <InfoButton nodeType="pca" />
             <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
 
             <div className="pca-header">

@@ -3,6 +3,7 @@ import { Handle, Position, useStore, useReactFlow } from 'reactflow';
 import './EncoderNode.css';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { encodeDataset } from '../../utils/encodingUtils';
+import InfoButton from '../ui/InfoButton';
 
 const EncoderNode = ({ id, data, isConnectable }) => {
   const [selectedColumns, setSelectedColumns] = useState([]);
@@ -172,6 +173,7 @@ const EncoderNode = ({ id, data, isConnectable }) => {
 
   return (
     <div className="encoder-node">
+      <InfoButton nodeType="encoder" />
       <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
 
       <div className="encoder-header">
@@ -299,5 +301,3 @@ const EncoderNode = ({ id, data, isConnectable }) => {
 };
 
 export default EncoderNode;
-
-

@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import InfoButton from '../ui/InfoButton';
 import { Handle, Position, useStore, useReactFlow } from 'reactflow';
 import './DatabaseReaderNode.css';
 import { testDatabaseConnection, fetchDatabaseTables, previewDatabaseData, loadDatabaseData } from '../../utils/apiClient';
@@ -233,6 +234,7 @@ function DatabaseReaderNode({ id, data }) {
     if (isDataLoaded) {
         return (
             <div className="database-reader-node minimal collapsed">
+                <InfoButton nodeType="databaseReader" />
                 <div className="node-header">
                     <div className="header-icon">✅</div>
                     <div className="node-label">{label}</div>
@@ -328,6 +330,7 @@ function DatabaseReaderNode({ id, data }) {
 
     return (
         <div className="database-reader-node minimal">
+            <InfoButton nodeType="databaseReader" />
             <div className="node-header">
                 <div className="header-icon">🔌</div>
                 <div className="node-label">{label}</div>

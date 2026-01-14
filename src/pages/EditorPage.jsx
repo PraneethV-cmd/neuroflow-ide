@@ -36,9 +36,17 @@ import PCANode from '../components/nodes/PCANode';
 import SVDNode from '../components/nodes/SVDNode';
 import DescribeNode from '../components/nodes/DescribeNode';
 import DataTypeConverterNode from '../components/nodes/DataTypeConverterNode';
+import KMeansNode from '../components/nodes/KMeansNode';
+import DBSCANNode from '../components/nodes/DBSCANNode';
+import HierarchicalClusteringNode from '../components/nodes/HierarchicalClusteringNode';
 import FloatingEdge from '../components/edges/FloatingEdge';
 import { MdVisibility } from 'react-icons/md';
+import { FaProjectDiagram } from 'react-icons/fa';
+import ClusterVisualizerModal from '../components/ui/ClusterVisualizerModal';
+import DendrogramModal from '../components/ui/DendrogramModal';
 import './EditorPage.css';
+import { NodeInfoProvider } from '../context/NodeInfoContext';
+import NodeInfoPanel from '../components/ui/NodeInfoPanel';
 import useStore from '../store/store';
 
 const nodeTypes = {
@@ -64,10 +72,11 @@ const nodeTypes = {
   svd: SVDNode,
   dataTypeConverter: DataTypeConverterNode,
   evaluator: ModelEvaluatorNode,
+  // New specialized nodes
+  kMeans: KMeansNode,
+  hierarchicalClustering: HierarchicalClusteringNode,
+  dbscan: DBSCANNode,
   // Generic/basic nodes
-  kMeans: BasicNode,
-  hierarchicalClustering: BasicNode,
-  dbscan: BasicNode,
   mlp: BasicNode,
   cnn: BasicNode,
   rnn: BasicNode,
@@ -114,6 +123,12 @@ const EditorPage = () => {
 
   // Advanced analytics modal state
   const [advancedAnalyticsModal, setAdvancedAnalyticsModal] = useState(null);
+
+  // Cluster visualizer modal state
+  const [clusterVisualizerModal, setClusterVisualizerModal] = useState(null);
+
+  // Dendrogram modal state (for hierarchical clustering)
+  const [dendrogramModal, setDendrogramModal] = useState(null);
 
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const { zoom } = useViewport();
@@ -283,278 +298,370 @@ const EditorPage = () => {
   }, [edges, setEdges, saveToHistory]);
 
   return (
-    <div className={`editor-container-new ${activeTool === 'pan' ? 'pan-active' : ''}`}>
-      <TopToolbar activeTool={activeTool} setActiveTool={setActiveTool} onMenuClick={handleMenuClick} />
-      {sidebarOpen && <Sidebar className={sidebarClosing ? 'slide-out' : ''} />}
+    <NodeInfoProvider>
+      <div className={`editor-container-new ${activeTool === 'pan' ? 'pan-active' : ''}`}>
+        <TopToolbar activeTool={activeTool} setActiveTool={setActiveTool} onMenuClick={handleMenuClick} />
+        {sidebarOpen && <Sidebar className={sidebarClosing ? 'slide-out' : ''} />}
 
-      <div className="canvas-area">
-        <div className="reactflow-wrapper-new" ref={reactFlowWrapper}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={handleConnect}
-            onInit={setReactFlowInstance}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            onNodeContextMenu={onNodeContextMenu}
-            onEdgeContextMenu={onEdgeContextMenu}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            isValidConnection={(c) => c.source !== c.target}
-            fitView
-            fitViewOptions={{ maxZoom: 0.75 }}
-            proOptions={{ hideAttribution: true }}
-            connectionMode="loose"
-            connectionLineComponent={SmoothStepEdge}
-            defaultEdgeOptions={{
-              type: 'floating',
-              markerEnd: { type: 'arrowclosed', color: '#6a1b9a' },
-              style: { stroke: '#6a1b9a', strokeWidth: 2 },
-            }}
-            panOnDrag={activeTool === 'pan'}
-            selectionOnDrag={activeTool === 'select'}
-          >
-            <MiniMap
-              style={{ position: 'absolute', bottom: '60px', right: '15px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }}
-              nodeColor="#888"
-              maskColor="rgba(255, 255, 255, 0.7)"
-            />
-          </ReactFlow>
-
-          <button className="add-node-button" onClick={addDefaultNode}>+</button>
-          {contextMenu && (() => {
-            const node = contextMenu.node;
-            const customActions = [];
-
-            // Define which node types can display full datasets and how to access their data
-            const datasetNodes = {
-              csvReader: {
-                condition: node.data?.headers && node.data?.file,
-                getData: async () => {
-                  const { parseFullTabularFile } = await import('../utils/parseTabularFile');
-                  const parsed = await parseFullTabularFile(node.data.file, true);
-                  return {
-                    headers: parsed.headers,
-                    rows: parsed.rows,
-                    fileName: node.data.file.name,
-                  };
-                },
-                useAdvancedAnalytics: true, // Use advanced analytics modal for CSV Reader
-              },
-              databaseReader: {
-                condition: node.data?.headers && node.data?.rows && node.data.rows.length > 0,
-                getData: async () => ({
-                  headers: node.data.headers,
-                  rows: node.data.rows,
-                  fileName: `Database Query (${node.data.rows.length} rows)`,
-                }),
-                useAdvancedAnalytics: true, // Use advanced analytics modal for Database Reader
-              },
-              dataCleaner: {
-                condition: node.data?.cleanedRows && node.data.cleanedRows.length > 0,
-                getData: async () => ({
-                  headers: node.data.headers,
-                  rows: node.data.cleanedRows,
-                  fileName: `Cleaned Data (${node.data.cleanedRows.length} rows)`,
-                }),
-              },
-              encoder: {
-                condition: node.data?.encodedRows && node.data.encodedRows.length > 0,
-                getData: async () => ({
-                  headers: node.data.headers,
-                  rows: node.data.encodedRows,
-                  fileName: `Encoded Data (${node.data.encodedRows.length} rows)`,
-                }),
-              },
-              normalizer: {
-                condition: node.data?.normalizedRows && node.data.normalizedRows.length > 0,
-                getData: async () => ({
-                  headers: node.data.headers,
-                  rows: node.data.normalizedRows,
-                  fileName: `Normalized Data (${node.data.normalizedRows.length} rows)`,
-                }),
-              },
-              featureSelector: {
-                condition: node.data?.selectedHeaders && node.data?.selectedRows && node.data.selectedRows.length > 0,
-                getData: async () => ({
-                  headers: node.data.selectedHeaders,
-                  rows: node.data.selectedRows,
-                  fileName: `Selected Features (${node.data.selectedRows.length} rows)`,
-                }),
-              },
-              pca: {
-                condition: node.data?.transformedHeaders && node.data?.transformedRows && node.data.transformedRows.length > 0,
-                getData: async () => ({
-                  headers: node.data.transformedHeaders,
-                  rows: node.data.transformedRows,
-                  fileName: `PCA Transformed Data (${node.data.transformedRows.length} rows)`,
-                }),
-              },
-              svd: {
-                condition: node.data?.transformedHeaders && node.data?.transformedRows && node.data.transformedRows.length > 0,
-                getData: async () => ({
-                  headers: node.data.transformedHeaders,
-                  rows: node.data.transformedRows,
-                  fileName: `SVD Transformed Data (${node.data.transformedRows.length} rows)`,
-                }),
-              },
-              dataTypeConverter: {
-                condition: node.data?.convertedRows && node.data.convertedRows.length > 0,
-                getData: async () => ({
-                  headers: node.data.headers,
-                  rows: node.data.convertedRows,
-                  fileName: `Converted Data (${node.data.convertedRows.length} rows)`,
-                }),
-              },
-            };
-
-            // Check if this node type supports dataset viewing
-            const nodeConfig = datasetNodes[node.type];
-            if (nodeConfig && nodeConfig.condition) {
-              customActions.push({
-                label: 'View Full Dataset',
-                icon: <MdVisibility />,
-                className: 'view',
-                onClick: async () => {
-                  try {
-                    const data = await nodeConfig.getData();
-                    // Use advanced analytics modal for CSV Reader and Database Reader, standard modal for others
-                    if (nodeConfig.useAdvancedAnalytics) {
-                      setAdvancedAnalyticsModal({
-                        ...data,
-                        nodeType: node.type,  // Store node type for filtering callback
-                        nodeId: node.id       // Store node ID for precise matching
-                      });
-                    } else {
-                      setDataViewModal(data);
-                    }
-                  } catch (err) {
-                    console.error('Failed to load dataset for viewing:', err);
-                  }
-                },
-              });
-            }
-
-            // Special handling for Data Cleaner node - add option to view removed rows
-            if (node.type === 'dataCleaner' && node.data?.removedRows && node.data.removedRows.length > 0) {
-              customActions.push({
-                label: 'View Removed Rows',
-                icon: <MdVisibility />,
-                className: 'view',
-                onClick: () => {
-                  setDataViewModal({
-                    headers: node.data.headers,
-                    rows: node.data.removedRows,
-                    fileName: `Removed Rows (${node.data.removedRows.length} rows)`,
-                  });
-                },
-              });
-            }
-
-            return (
-              <ContextMenu
-                x={contextMenu.x}
-                y={contextMenu.y}
-                nodeId={node.id}
-                nodeType={node.type}
-                onDelete={handleDeleteNode}
-                onClose={() => setContextMenu(null)}
-                customActions={customActions}
-              />
-            );
-          })()}
-          {edgeContextMenu && (
-            <div
-              className="edge-context-menu"
-              style={{
-                position: 'fixed',
-                top: edgeContextMenu.y,
-                left: edgeContextMenu.x,
-                background: 'white',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                zIndex: 1000,
-                minWidth: '120px',
+        <div className="canvas-area">
+          <div className="reactflow-wrapper-new" ref={reactFlowWrapper}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={handleConnect}
+              onInit={setReactFlowInstance}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              onNodeContextMenu={onNodeContextMenu}
+              onEdgeContextMenu={onEdgeContextMenu}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              isValidConnection={(c) => c.source !== c.target}
+              fitView
+              fitViewOptions={{ maxZoom: 0.75 }}
+              proOptions={{ hideAttribution: true }}
+              connectionMode="loose"
+              connectionLineComponent={SmoothStepEdge}
+              defaultEdgeOptions={{
+                type: 'floating',
+                markerEnd: { type: 'arrowclosed', color: '#6a1b9a' },
+                style: { stroke: '#6a1b9a', strokeWidth: 2 },
               }}
+              panOnDrag={activeTool === 'pan'}
+              selectionOnDrag={activeTool === 'select'}
             >
-              <button
-                onClick={() => handleDeleteEdge(edgeContextMenu.edgeId)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: 'none',
-                  background: 'transparent',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  color: '#e53e3e',
-                  fontSize: '14px',
-                }}
-                onMouseEnter={(e) => e.target.style.background = '#f7fafc'}
-                onMouseLeave={(e) => e.target.style.background = 'transparent'}
-              >
-                🗑️ Delete Edge
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-      <BottomToolbar
-        zoomIn={zoomIn}
-        zoomOut={zoomOut}
-        fitView={fitView}
-        zoomLevel={zoom}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-      />
+              <MiniMap
+                style={{ position: 'absolute', bottom: '60px', right: '15px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }}
+                nodeColor="#888"
+                maskColor="rgba(255, 255, 255, 0.7)"
+              />
+            </ReactFlow>
 
-      {/* Data View Modal */}
-      {dataViewModal && (
-        <DataViewModal
-          isOpen={true}
-          onClose={() => setDataViewModal(null)}
-          headers={dataViewModal.headers}
-          rows={dataViewModal.rows}
-          fileName={dataViewModal.fileName}
-        />
-      )}
+            <button className="add-node-button" onClick={addDefaultNode}>+</button>
+            {contextMenu && (() => {
+              const node = contextMenu.node;
+              const customActions = [];
 
-      {/* Advanced Analytics Modal (for CSV Reader) */}
-      {advancedAnalyticsModal && (
-        <AdvancedDataAnalyticsModal
-          isOpen={true}
-          onClose={() => setAdvancedAnalyticsModal(null)}
-          headers={advancedAnalyticsModal.headers}
-          rows={advancedAnalyticsModal.rows}
-          fileName={advancedAnalyticsModal.fileName}
-          onLoadFilteredData={(filteredData) => {
-            // Find the node and update its data
-            const newNodes = nodes.map((n) => {
-              if (n.id === advancedAnalyticsModal.nodeId) {
-                return {
-                  ...n,
-                  data: {
-                    ...n.data,
-                    headers: filteredData.headers,
-                    rows: filteredData.rows,
-                    isFiltered: true,
-                    originalRowCount: advancedAnalyticsModal.rows.length,
-                    filteredRowCount: filteredData.rows.length
-                  }
-                };
+              // Define which node types can display full datasets and how to access their data
+              const datasetNodes = {
+                csvReader: {
+                  condition: node.data?.headers && node.data?.file,
+                  getData: async () => {
+                    const { parseFullTabularFile } = await import('../utils/parseTabularFile');
+                    const parsed = await parseFullTabularFile(node.data.file, true);
+                    return {
+                      headers: parsed.headers,
+                      rows: parsed.rows,
+                      fileName: node.data.file.name,
+                    };
+                  },
+                  useAdvancedAnalytics: true, // Use advanced analytics modal for CSV Reader
+                },
+                databaseReader: {
+                  condition: node.data?.headers && node.data?.rows && node.data.rows.length > 0,
+                  getData: async () => ({
+                    headers: node.data.headers,
+                    rows: node.data.rows,
+                    fileName: `Database Query (${node.data.rows.length} rows)`,
+                  }),
+                  useAdvancedAnalytics: true, // Use advanced analytics modal for Database Reader
+                },
+                dataCleaner: {
+                  condition: node.data?.cleanedRows && node.data.cleanedRows.length > 0,
+                  getData: async () => ({
+                    headers: node.data.headers,
+                    rows: node.data.cleanedRows,
+                    fileName: `Cleaned Data (${node.data.cleanedRows.length} rows)`,
+                  }),
+                },
+                encoder: {
+                  condition: node.data?.encodedRows && node.data.encodedRows.length > 0,
+                  getData: async () => ({
+                    headers: node.data.headers,
+                    rows: node.data.encodedRows,
+                    fileName: `Encoded Data (${node.data.encodedRows.length} rows)`,
+                  }),
+                },
+                normalizer: {
+                  condition: node.data?.normalizedRows && node.data.normalizedRows.length > 0,
+                  getData: async () => ({
+                    headers: node.data.headers,
+                    rows: node.data.normalizedRows,
+                    fileName: `Normalized Data (${node.data.normalizedRows.length} rows)`,
+                  }),
+                },
+                featureSelector: {
+                  condition: node.data?.selectedHeaders && node.data?.selectedRows && node.data.selectedRows.length > 0,
+                  getData: async () => ({
+                    headers: node.data.selectedHeaders,
+                    rows: node.data.selectedRows,
+                    fileName: `Selected Features (${node.data.selectedRows.length} rows)`,
+                  }),
+                },
+                pca: {
+                  condition: node.data?.transformedHeaders && node.data?.transformedRows && node.data.transformedRows.length > 0,
+                  getData: async () => ({
+                    headers: node.data.transformedHeaders,
+                    rows: node.data.transformedRows,
+                    fileName: `PCA Transformed Data (${node.data.transformedRows.length} rows)`,
+                  }),
+                },
+                svd: {
+                  condition: node.data?.transformedHeaders && node.data?.transformedRows && node.data.transformedRows.length > 0,
+                  getData: async () => ({
+                    headers: node.data.transformedHeaders,
+                    rows: node.data.transformedRows,
+                    fileName: `SVD Transformed Data (${node.data.transformedRows.length} rows)`,
+                  }),
+                },
+                dataTypeConverter: {
+                  condition: node.data?.convertedRows && node.data.convertedRows.length > 0,
+                  getData: async () => ({
+                    headers: node.data.headers,
+                    rows: node.data.convertedRows,
+                    fileName: `Converted Data (${node.data.convertedRows.length} rows)`,
+                  }),
+                },
+                kMeans: {
+                  condition: node.data?.clusteredData && node.data.clusteredData.length > 0,
+                  getData: async () => ({
+                    headers: node.data.clusteredHeaders,
+                    rows: node.data.clusteredData,
+                    fileName: `Clustered Data (${node.data.clusteredData.length} rows)`,
+                  }),
+                },
+                dbscan: {
+                  condition: node.data?.clusteredData && node.data.clusteredData.length > 0,
+                  getData: async () => ({
+                    headers: node.data.clusteredHeaders,
+                    rows: node.data.clusteredData,
+                    fileName: `DBSCAN Clustered Data (${node.data.clusteredData.length} rows)`,
+                  }),
+                },
+                hierarchicalClustering: {
+                  condition: node.data?.clusteredData && node.data.clusteredData.length > 0,
+                  getData: async () => ({
+                    headers: node.data.clusteredHeaders,
+                    rows: node.data.clusteredData,
+                    fileName: `Hierarchical Clustered Data (${node.data.clusteredData.length} rows)`,
+                  }),
+                },
+              };
+
+              // Check if this node type supports dataset viewing
+              const nodeConfig = datasetNodes[node.type];
+              if (nodeConfig && nodeConfig.condition) {
+                customActions.push({
+                  label: 'View Full Dataset',
+                  icon: <MdVisibility />,
+                  className: 'view',
+                  onClick: async () => {
+                    try {
+                      const data = await nodeConfig.getData();
+                      // Use advanced analytics modal for CSV Reader and Database Reader, standard modal for others
+                      if (nodeConfig.useAdvancedAnalytics) {
+                        setAdvancedAnalyticsModal({
+                          ...data,
+                          nodeType: node.type,  // Store node type for filtering callback
+                          nodeId: node.id       // Store node ID for precise matching
+                        });
+                      } else {
+                        setDataViewModal(data);
+                      }
+                    } catch (err) {
+                      console.error('Failed to load dataset for viewing:', err);
+                    }
+                  },
+                });
               }
-              return n;
-            });
-            setNodes(newNodes);
-            saveToHistory();
-          }}
+
+              // Cluster Graph Visualization
+              if ((node.type === 'kMeans' || node.type === 'dbscan') && node.data?.clusteredData && node.data.clusteredData.length > 0) {
+                customActions.push({
+                  label: 'View Cluster Graph',
+                  icon: <FaProjectDiagram />,
+                  className: 'view',
+                  onClick: () => {
+                    setClusterVisualizerModal({
+                      rows: node.data.clusteredData,
+                      headers: node.data.clusteredHeaders,
+                      features: node.data.selectedFeatures,
+                      centers: node.data.clusterCenters
+                    });
+                  }
+                });
+              }
+
+              // Dendrogram Visualization for Hierarchical Clustering
+              if (node.type === 'hierarchicalClustering' && node.data?.dendrogram) {
+                customActions.push({
+                  label: 'View Dendrogram',
+                  icon: <FaProjectDiagram />,
+                  className: 'view',
+                  onClick: () => {
+                    setDendrogramModal({
+                      dendrogram: node.data.dendrogram,
+                      cutHeight: node.data.cutHeight,
+                      nClusters: node.data.nClusters,
+                      linkageMethod: node.data.linkageMethod,
+                      distanceMetric: node.data.distanceMetric,
+                      sampleData: node.data.sampleData,
+                      headers: node.data.headers
+                    });
+                  }
+                });
+              }
+
+              // Special handling for Data Cleaner node - add option to view removed rows
+              if (node.type === 'dataCleaner' && node.data?.removedRows && node.data.removedRows.length > 0) {
+                customActions.push({
+                  label: 'View Removed Rows',
+                  icon: <MdVisibility />,
+                  className: 'view',
+                  onClick: () => {
+                    setDataViewModal({
+                      headers: node.data.headers,
+                      rows: node.data.removedRows,
+                      fileName: `Removed Rows (${node.data.removedRows.length} rows)`,
+                    });
+                  },
+                });
+              }
+
+              return (
+                <ContextMenu
+                  x={contextMenu.x}
+                  y={contextMenu.y}
+                  nodeId={node.id}
+                  nodeType={node.type}
+                  onDelete={handleDeleteNode}
+                  onClose={() => setContextMenu(null)}
+                  customActions={customActions}
+                />
+              );
+            })()}
+            {edgeContextMenu && (
+              <div
+                className="edge-context-menu"
+                style={{
+                  position: 'fixed',
+                  top: edgeContextMenu.y,
+                  left: edgeContextMenu.x,
+                  background: 'white',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  zIndex: 1000,
+                  minWidth: '120px',
+                }}
+              >
+                <button
+                  onClick={() => handleDeleteEdge(edgeContextMenu.edgeId)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: 'none',
+                    background: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    color: '#e53e3e',
+                    fontSize: '14px',
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#f7fafc'}
+                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                >
+                  🗑️ Delete Edge
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        <BottomToolbar
+          zoomIn={zoomIn}
+          zoomOut={zoomOut}
+          fitView={fitView}
+          zoomLevel={zoom}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
         />
-      )}
-    </div>
+
+        {/* Data View Modal */}
+        {dataViewModal && (
+          <DataViewModal
+            isOpen={true}
+            onClose={() => setDataViewModal(null)}
+            headers={dataViewModal.headers}
+            rows={dataViewModal.rows}
+            fileName={dataViewModal.fileName}
+          />
+        )}
+
+        {/* Advanced Analytics Modal (for CSV Reader) */}
+        {advancedAnalyticsModal && (
+          <AdvancedDataAnalyticsModal
+            isOpen={true}
+            onClose={() => setAdvancedAnalyticsModal(null)}
+            headers={advancedAnalyticsModal.headers}
+            rows={advancedAnalyticsModal.rows}
+            fileName={advancedAnalyticsModal.fileName}
+            onLoadFilteredData={(filteredData) => {
+              // Find the node and update its data
+              const newNodes = nodes.map((n) => {
+                if (n.id === advancedAnalyticsModal.nodeId) {
+                  return {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      headers: filteredData.headers,
+                      rows: filteredData.rows,
+                      isFiltered: true,
+                      originalRowCount: advancedAnalyticsModal.rows.length,
+                      filteredRowCount: filteredData.rows.length
+                    }
+                  };
+                }
+                return n;
+              });
+              setNodes(newNodes);
+              saveToHistory();
+            }}
+          />
+        )}
+
+        {/* Cluster Visualizer Modal */}
+        {clusterVisualizerModal && (
+          <ClusterVisualizerModal
+            isOpen={true}
+            onClose={() => setClusterVisualizerModal(null)}
+            rows={clusterVisualizerModal.rows}
+            headers={clusterVisualizerModal.headers}
+            features={clusterVisualizerModal.features}
+            centers={clusterVisualizerModal.centers}
+          />
+        )}
+
+        {/* Dendrogram Modal */}
+        {dendrogramModal && (
+          <DendrogramModal
+            isOpen={true}
+            onClose={() => setDendrogramModal(null)}
+            dendrogram={dendrogramModal.dendrogram}
+            cutHeight={dendrogramModal.cutHeight}
+            nClusters={dendrogramModal.nClusters}
+            linkageMethod={dendrogramModal.linkageMethod}
+            distanceMetric={dendrogramModal.distanceMetric}
+            sampleData={dendrogramModal.sampleData}
+            headers={dendrogramModal.headers}
+          />
+        )}
+
+        <NodeInfoPanel />
+      </div>
+    </NodeInfoProvider>
   );
 };
 

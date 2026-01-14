@@ -4,6 +4,7 @@ import './LinearRegressionNode.css';
 import { FaCog } from 'react-icons/fa';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { trainMultiLinearRegression, checkApiHealth } from '../../utils/apiClient';
+import InfoButton from '../ui/InfoButton';
 
 const MultiLinearRegressionNode = ({ id, data, isConnectable }) => {
   const [selectedX, setSelectedX] = useState([]);
@@ -213,6 +214,7 @@ const MultiLinearRegressionNode = ({ id, data, isConnectable }) => {
 
   return (
     <div className="linear-regression-node">
+      <InfoButton nodeType="multiLinearRegression" />
       <Handle type="target" position={Position.Top} isConnectable={isConnectable} style={{ background: '#555' }} />
 
       <div className="node-header">

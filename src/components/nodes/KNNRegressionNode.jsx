@@ -4,6 +4,7 @@ import './LinearRegressionNode.css';
 import { FaChartLine, FaCog } from 'react-icons/fa';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { trainKNNRegression, checkApiHealth } from '../../utils/apiClient';
+import InfoButton from '../ui/InfoButton';
 
 const KNNRegressionNode = ({ id, data, isConnectable }) => {
     const [selectedX, setSelectedX] = useState([]);
@@ -220,6 +221,7 @@ const KNNRegressionNode = ({ id, data, isConnectable }) => {
 
     return (
         <div className="linear-regression-node">
+            <InfoButton nodeType="knnRegression" />
             <Handle type="target" position={Position.Top} isConnectable={isConnectable} style={{ background: '#555' }} />
 
             <div className="node-header">

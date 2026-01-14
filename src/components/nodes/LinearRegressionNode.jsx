@@ -1,11 +1,12 @@
-import React, { useMemo, useState, useEffect, useCallback, memo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Handle, Position, useStore, useReactFlow } from 'reactflow';
 import './LinearRegressionNode.css';
 import { FaChartLine, FaCog } from 'react-icons/fa';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { trainLinearRegression, checkApiHealth } from '../../utils/apiClient';
+import InfoButton from '../ui/InfoButton';
 
-const LinearRegressionNode = memo(({ id, data, isConnectable }) => {
+const LinearRegressionNode = ({ id, data, isConnectable }) => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [config, setConfig] = useState({
     learningRate: 0.01,
@@ -100,11 +101,11 @@ const LinearRegressionNode = memo(({ id, data, isConnectable }) => {
 
   const headers = useMemo(() => upstreamData?.headers || [], [upstreamData]);
 
-  const toggleConfig = useCallback(() => {
+  const toggleConfig = () => {
     setIsConfigOpen(!isConfigOpen);
-  }, [isConfigOpen]);
+  };
 
-  const onRun = useCallback(async () => {
+  const onRun = async () => {
     setTrainMsg('');
     if (!upstreamData) {
       alert('Please connect a CSV/Excel node or Encoder node.');
@@ -200,10 +201,11 @@ const LinearRegressionNode = memo(({ id, data, isConnectable }) => {
     } finally {
       setIsTraining(false);
     }
-  }, [upstreamData, xCol, yCol, headers, trainPercent, config, setNodes, id]);
+  };
 
   return (
     <div className="linear-regression-node">
+      <InfoButton nodeType="linearRegression" />
       <Handle
         type="target"
         position={Position.Top}
@@ -412,6 +414,6 @@ const LinearRegressionNode = memo(({ id, data, isConnectable }) => {
       />
     </div>
   );
-});
+};
 
 export default LinearRegressionNode;

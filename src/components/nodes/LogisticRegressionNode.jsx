@@ -4,6 +4,7 @@ import './LinearRegressionNode.css';
 import { FaCog } from 'react-icons/fa';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
 import { trainLogisticRegression, checkApiHealth } from '../../utils/apiClient';
+import InfoButton from '../ui/InfoButton';
 
 const LogisticRegressionNode = ({ id, data, isConnectable }) => {
   const [selectedX, setSelectedX] = useState([]);
@@ -247,6 +248,7 @@ const LogisticRegressionNode = ({ id, data, isConnectable }) => {
 
   return (
     <div className="linear-regression-node">
+      <InfoButton nodeType="logisticRegression" />
       <Handle type="target" position={Position.Top} isConnectable={isConnectable} style={{ background: '#555' }} />
 
       <div className="node-header">

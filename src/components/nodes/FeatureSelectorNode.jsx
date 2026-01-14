@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Handle, Position, useStore, useReactFlow } from 'reactflow';
 import './FeatureSelectorNode.css';
 import { parseFullTabularFile } from '../../utils/parseTabularFile';
+import InfoButton from '../ui/InfoButton';
 
 const FeatureSelectorNode = ({ id, data, isConnectable }) => {
     const { setNodes } = useReactFlow();
@@ -160,6 +161,7 @@ const FeatureSelectorNode = ({ id, data, isConnectable }) => {
 
     return (
         <div className="feature-selector-node">
+            <InfoButton nodeType="featureSelector" />
             <Handle type="target" position={Position.Top} isConnectable={isConnectable} id="target-top" />
             <Handle type="target" position={Position.Left} isConnectable={isConnectable} id="target-left" />
 
