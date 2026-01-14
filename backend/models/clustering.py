@@ -282,6 +282,14 @@ class DBSCAN:
         self.labels = labels
         self.n_clusters_ = cluster_id
         self.n_noise_ = int(np.sum(labels == -1))
+        
+        # Identify core samples for prediction/evaluation
+        self.core_sample_indices_ = []
+        for i in range(n_samples):
+             # Re-check core point condition to store indices
+             neighbors = self._region_query(X_scaled, i, distance_func)
+             if len(neighbors) >= self.min_samples:
+                 self.core_sample_indices_.append(i)
 
         return self
 

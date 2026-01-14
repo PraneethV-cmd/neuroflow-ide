@@ -16,6 +16,8 @@ from backend.routes.classification import classification_bp
 from backend.routes.ml_others import ml_others_bp
 from backend.routes.data import data_bp
 from backend.routes.database import database_bp
+from backend.routes.knn import knn_bp
+from backend.routes.clustering import clustering_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -26,6 +28,8 @@ app.register_blueprint(classification_bp)
 app.register_blueprint(ml_others_bp)
 app.register_blueprint(data_bp)
 app.register_blueprint(database_bp)
+app.register_blueprint(knn_bp)
+app.register_blueprint(clustering_bp)
 
 @app.route("/api/health")
 def health():
